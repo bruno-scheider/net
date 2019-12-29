@@ -14,6 +14,10 @@ def run_epoch(train_dataset):
     for input,gt_heat in train_dataset:
         
         loss, grads = grad(net.model,input,gt_heat)
+        
+        g = tf.get_default_graph()
+        tf.contrib.quantize.create_training_graph(input_graph=g, quant_delay=20000)
+
         optimizer.apply_gradients(zip(grads,net.model.trainable_variables))
 
         epoch_loss_avg(loss)
