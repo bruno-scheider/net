@@ -8,17 +8,18 @@ print("hi")
 class net:
     def __init__(self):
         self.input_size=512
+        input = keras.Input(shape=(512,512,3))
+        start = layers.Conv2D(filters = 3,kernel_size=1, strides=1)(input)
+        start = layers.MaxPooling2D()(start)
+        hg1 = self.hg_module(start)
+        hg2 = self.hg_module(hg1)
+        self.model=keras.Model(inputs=input,outputs=hg2)
 
     def forward(self,input):
         '''
         input needs to be size of (b ,512, 512, 3)
         '''
-        start = layers.Conv2D(filters = 3,kernel_size=1, strides=1)(input)
-        start = layers.MaxPooling2D()(start)
-        hg1 = self.hg_module(start)
-        hg2 = self.hg_module(hg1)
-
-        return hg2
+        return self.model(input)
 
 
     def hg_module(self,input):#, input):
@@ -41,9 +42,13 @@ class net:
         skip16 = _x
         _x = layers.Conv2D(filters = 3,kernel_size=1, strides=1)(_x)
         _x = layers.MaxPooling2D()(_x)
-    
+        skip8 = _x
+        _x = layers.Conv2D(filters = 3,kernel_size=1, strides=1)(_x)
+        _x = layers.MaxPooling2D()(_x)
         
         ##up
+        _x = backend.resize_images(_x,2,2,data_format="channels_last", interpolation = "nearest")
+        _x = layers.Add()([_x,skip8])
         _x = backend.resize_images(_x,2,2,data_format="channels_last", interpolation = "nearest")
         _x = layers.Add()([_x,skip16])
         _x = backend.resize_images(_x,2,2,data_format="channels_last", interpolation = "nearest")
@@ -54,6 +59,8 @@ class net:
         _x = layers.Add()([_x,skip128])
         _x = backend.resize_images(_x,2,2,data_format="channels_last", interpolation = "nearest")
         _x = layers.Add()([_x,skip256])
+        
+
 
         return _x
 
