@@ -17,7 +17,7 @@ class net:
         depth=tf.compat.v1.space_to_depth(input=hg2,block_size=4)
         hg3=self.hg_module(depth,fil=48)
         hg4=self.hg_module(hg3,fil=48)
-        heat=self.reduce_dim(hg4,48)
+        heat=layers.Conv2D(filters = 1,kernel_size=1, strides=1)(hg4)
         norm_heat=tf.compat.v1.math.l2_normalize(heat,axis=3)
 
         self.model=keras.Model(inputs=input,outputs=norm_heat)
@@ -28,14 +28,7 @@ class net:
         '''
         return self.model(input)
 
-    def reduce_dim(self, input,num):
-        splits=tf.compat.v1.split(value=input,num_or_size_splits=num,axis=3)
-        _x=splits[0]
-        for i in range(1,len(splits)):
-            _x=layers.Add()([_x,splits[i]])
 
-
-        return _x
 
     def hg_module(self,input,fil=3):
         
@@ -98,7 +91,8 @@ if __name__ == "__main__":
     data = np.random.rand(5,512,512,3).astype(np.float32)
     #import ipdb; ipdb.set_trace()
     pred = model.forward(data)
-    import ipdb; ipdb.set_trace()
+    print(model.model.summary())
+    #import ipdb; ipdb.set_trace()
     print(pred.shape)
     
 
