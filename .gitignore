@@ -1,2 +1,7 @@
 *.jpg
 *.png
+*.jpeg
+*.pb
+*.h5
+*.pbtxt
+*.json
