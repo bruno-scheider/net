@@ -10,6 +10,7 @@ import numpy as np
 import json
 import os
 from PIL import Image
+from get_data import _decode
 # sys.path.append('../')
 
 

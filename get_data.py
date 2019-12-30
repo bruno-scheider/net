@@ -12,25 +12,13 @@ import tensorflow as tf
 from config import cfg
 from transform import draw_gaussian, gaussian_radius,resize_image,clip_detections
 from init_data import MSCOCO
+from matplotlib import pyplot as plt
+from PIL import Image
+from pycocotools.coco import COCO
 
 class Image_data():
     def __init__(self,split):
-        self.coco=MSCOCO(split)
-        self.data_rng   = cfg.data_rng
-        self.num_image  = len(self.coco.get_all_img())
-        self.categories   = cfg.categories
-        self.input_size   = cfg.input_size
-        self.output_size  = cfg.output_sizes[0]
-
-        self.border        = cfg.border
-        #self.lighting      = cfg.lighting
-        self.rand_crop     = cfg.rand_crop
-        print(self.rand_crop)
-        self.rand_color    = cfg.rand_color
-        self.rand_scales   = cfg.rand_scales
-        self.gaussian_bump = cfg.gaussian_bump
-        self.gaussian_iou  = cfg.gaussian_iou
-        self.gaussian_rad  = cfg.gaussian_radius
+        print("hinitialized")
 
     def read_from_disk(self,queue):
         max_tag_len=1
@@ -97,40 +85,71 @@ class Image_data():
             
         return image, heatmap,center
 
-    def get_single_data(self,queue):
-        images, heatmap, center = tf.py_func(self.read_from_disk,[queue],
-            [tf.float32,tf.float32,tf.int64])
-        return images, heatmap, center
 
-        
-    def inupt_producer(self):
-        #DEBUG:
-        ## quene_train is empty  
-        ## self.coco.get_all_img() give list of strings(name of pic)
-       
-        quene_train=tf.train.slice_input_producer([self.coco.get_all_img()],shuffle=False)
-        self.images, self.heatmap, self.center =self.get_single_data(quene_train)
-        
-    def get_batch_data(self,batch_size):
-        
+def get_gt(img_id): 
+    annotations = '/home/local/stud/mbzirc/CornerNet_tf/brutrick/EfficientDet/datasets/coco/annotations/instances_train2017.json'
+    coco = COCO(annotation_file=annotations)
+    bbox = coco.loadAnns(img_id)[0]['bbox']
+    return bbox
 
-        #DEBUG:
-        ## tf.train.shuffle_batch : List of tensors is NONE, batch_size = 10, 
-        ## shapes = [(511, 511, 3),   128,    128,   (128, 128, 1), (128, 128, 1),   128,    (128, 2),   (128, 2),   (128, 4), (128, 2)]
-        ##                 |           |       |           |             |            |         |            |          |          |
-        ##              images,     tags_tl, tags_br,  heatmaps_tl,   heatmaps_br,  tags_mask, offset_tl, offset_br, boxes_ratio, ratio
-        images, heatmaps, centers =tf.train.shuffle_batch([self.images,self.heatmap, self.center],
-            batch_size=batch_size,
-            shapes=[(self.input_size[0], self.input_size[1],3),(self.output_size[0], self.output_size[1]),
-            (2)],
-            capacity=100,min_after_dequeue=batch_size,num_threads=1)#num_threads =16
-        
-        return images,heatmaps, centers
+'''Nur sinnvoll wenn man keine gt gegeben hat'''
+def create_gt(bbox):
+    heatmap = np.zeros((128, 128), dtype=np.float32)
+    
+    w,h = image.shape[0:2]
+    ratio_w = 128/w
+    ratio_h= 128/h
 
+    x_ori, y_ori = (detection[0]+detection[2])//2, (detection[1]+detection[3])//2
+    fx = (x_ori * ratio_w)
+    fy = (y_ori * ratio_h)
+    x = int(fx)
+    y = int(fy)
+
+def _decode(filename):
+    
+    # print(tf.strings.bytes_splits(filename))
+    gt_path = '/home/local/stud/mbzirc/net/data/copter_gt'
+
+    path = tf.strings.split([filename], '/')
+    path_split = tf.sparse.to_dense(path)
+
+    img_id_with_jpg = tf.compat.as_str_any(tf.convert_to_tensor(path_split)[0,-1])
+    img_id_split = tf.strings.split([img_id_with_jpg], '.')
+    id_dense = tf.sparse.to_dense(img_id_split)
+    import ipdb; ipdb.set_trace()
+    img_id = tf.compat.as_str_any(tf.convert_to_tensor(id_dense)[0,0])
+    
+    
+    image = tf.io.read_file(filename)
+    
+    image = tf.image.decode_jpeg(image)
+    image = tf.image.convert_image_dtype(image, tf.uint8)
+    
+    image = tf.image.resize(image, [128,128])
+
+    gt_image = tf.io.read_file(gt_path+'/'+img_id_with_jpg)
+    gt_image = tf.image.decode_jpeg(gt_image)
+    gt_image = tf.image.convert_image_dtype(gt_image, tf.uint8)
+    gt_image = tf.image.resize(gt_image, [512,512])
+    #gt_image=np.convert_to_tensor(gt_image)
+
+    # plt.imshow(img[:,:,0], cmap='gray', vmin=0, vmax=255)
+    # plt.show()
+   
+    
+    return image, gt_image
 
 if __name__=='__main__':
+    #tf.enable_eager_execution()
     data=Image_data('trainval')
-    print(tf.data.Dataset.from_tensor_slices(data.coco.get_all_img(),1))
+ 
+    #import ipdb; ipdb.set_trace()
+    #img_ids =np.asarray(data.coco.get_all_img())
+    ids_dataset = tf.data.Dataset.list_files('/home/local/stud/mbzirc/net/data/copter_images/*.jpeg')
+    dataset = ids_dataset.map(_decode)
+    import ipdb; ipdb.set_trace()
+    #image = _decode(file_path)
 
 
     # tf.compat.v1.enable_eager_execution()
