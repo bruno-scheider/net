@@ -52,10 +52,7 @@ class Export():
                 output_names = output_names[:-1]
                 print(output_names)
 
-                #CornerNet/master_branch/conv2d_1/BiasAdd,CornerNet/master_branch/
-                # conv2d_5/BiasAdd,CornerNet/master_branch/conv2d_3/BiasAdd,CornerNet/master_branch/
-                # conv2d_7/BiasAdd,CornerNet/master_branch/offset_tl/conv2d/BiasAdd,CornerNet/master_branch/offset_br/conv2d/BiasAdd
-
+                
                 g = tf.get_default_graph()
                 #tf.contrib.quantize.create_eval_graph(input_graph=g)
 
