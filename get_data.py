@@ -11,7 +11,7 @@ import string
 import tensorflow as tf
 from config import cfg
 from transform import draw_gaussian, gaussian_radius,resize_image,clip_detections
-from init_data import MSCOCO
+#from init_data import MSCOCO
 from matplotlib import pyplot as plt
 from PIL import Image
 from pycocotools.coco import COCO
@@ -92,63 +92,75 @@ def get_gt(img_id):
     bbox = coco.loadAnns(img_id)[0]['bbox']
     return bbox
 
-'''Nur sinnvoll wenn man keine gt gegeben hat'''
-def create_gt(bbox):
-    heatmap = np.zeros((128, 128), dtype=np.float32)
-    
-    w,h = image.shape[0:2]
-    ratio_w = 128/w
-    ratio_h= 128/h
 
-    x_ori, y_ori = (detection[0]+detection[2])//2, (detection[1]+detection[3])//2
-    fx = (x_ori * ratio_w)
-    fy = (y_ori * ratio_h)
-    x = int(fx)
-    y = int(fy)
+
+
+  
+
+
 
 def _decode(filename):
     
     # print(tf.strings.bytes_splits(filename))
-    gt_path = '/home/local/stud/mbzirc/net/data/copter_gt'
+    #gt_path = '/home/local/stud/mbzirc/net/data/copter_gt'
 
-    path = tf.strings.split([filename], '/')
-    path_split = tf.sparse.to_dense(path)
+    #path = tf.strings.split([filename], '/')
+    #path_split = tf.sparse.to_dense(path)
 
-    img_id_with_jpg = tf.compat.as_str_any(tf.convert_to_tensor(path_split)[0,-1])
-    img_id_split = tf.strings.split([img_id_with_jpg], '.')
-    id_dense = tf.sparse.to_dense(img_id_split)
-    import ipdb; ipdb.set_trace()
-    img_id = tf.compat.as_str_any(tf.convert_to_tensor(id_dense)[0,0])
+    #img_id_with_jpg = tf.compat.as_str_any(tf.convert_to_tensor(path_split)[0,-1])
+    #img_id_split = tf.strings.split([img_id_with_jpg], '.')
+    #id_dense = tf.sparse.to_dense(img_id_split)
+    #import ipdb; ipdb.set_trace()
+    #img_id = tf.compat.as_str_any(tf.convert_to_tensor(id_dense)[0,0])
     
     
     image = tf.io.read_file(filename)
     
     image = tf.image.decode_jpeg(image)
-    image = tf.image.convert_image_dtype(image, tf.uint8)
+    image = tf.image.convert_image_dtype(image, tf.float32)
     
-    image = tf.image.resize(image, [128,128])
+    image = tf.image.resize(image, [512,512])
 
-    gt_image = tf.io.read_file(gt_path+'/'+img_id_with_jpg)
-    gt_image = tf.image.decode_jpeg(gt_image)
-    gt_image = tf.image.convert_image_dtype(gt_image, tf.uint8)
-    gt_image = tf.image.resize(gt_image, [512,512])
+    #gt_image = tf.io.read_file(gt_path+'/'+img_id_with_jpg)
+    #gt_image = tf.image.decode_jpeg(gt_image)
+    #gt_image = tf.image.convert_image_dtype(gt_image, tf.uint8)
+    #gt_image = tf.image.resize(gt_image, [512,512])
     #gt_image=np.convert_to_tensor(gt_image)
 
     # plt.imshow(img[:,:,0], cmap='gray', vmin=0, vmax=255)
     # plt.show()
    
     
-    return image, gt_image
+    return image
+
+
+def _decode_gt(filename):
+    image = tf.io.read_file(filename)
+    
+    image = tf.image.decode_jpeg(image)
+    image = tf.image.convert_image_dtype(image, tf.float32)
+    
+    image = tf.image.resize(image, [128,128])
+    #fürs Bilder angucken
+    #image = tf.transpose(image, perm=[2,0,1])[0] 
+    
+    return image
 
 if __name__=='__main__':
-    #tf.enable_eager_execution()
+    tf.enable_eager_execution()
     data=Image_data('trainval')
  
     #import ipdb; ipdb.set_trace()
     #img_ids =np.asarray(data.coco.get_all_img())
     ids_dataset = tf.data.Dataset.list_files('/home/local/stud/mbzirc/net/data/copter_images/*.jpeg')
     dataset = ids_dataset.map(_decode)
+
+    ids_dataset_gt = tf.data.Dataset.list_files('/home/local/stud/mbzirc/net/data/copter_gt/*.jpeg')
+    dataset_gt = ids_dataset_gt.map(_decode_gt)
+    dataset = tf.data.Dataset.zip((dataset, dataset_gt))
+
     import ipdb; ipdb.set_trace()
+
     #image = _decode(file_path)
 
 

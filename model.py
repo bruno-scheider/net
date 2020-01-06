@@ -76,9 +76,11 @@ class net:
         #TODO: maybe add a custom loss function, first try with something from keras
         #both needs to be shape [NONE, 64,64,1]
         _y=self.forward(inputs)
+        #import ipdb; ipdb.set_trace()
         return tf.keras.losses.Huber(gt,_y)
 
     def grad(self,inputs,targets):
+        
         with tf.GradientTape() as tape:
             loss_value= loss(inputs,targets)
         return loss_value, tape.gradient(loss_value,self.model.trainable_variables)
